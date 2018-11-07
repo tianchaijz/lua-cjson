@@ -48,7 +48,7 @@
 #include "fpconv.h"
 
 #ifndef CJSON_MODNAME
-#define CJSON_MODNAME   "cjson"
+#define CJSON_MODNAME   "sjson"
 #endif
 
 #ifndef CJSON_VERSION
@@ -531,6 +531,21 @@ static void json_append_string(lua_State *l, strbuf_t *json, int lindex)
     strbuf_append_char_unsafe(json, '\"');
 }
 
+static void json_append_serialized(lua_State *l, strbuf_t *json, int lindex)
+{
+    unsigned i;
+    const char *str;
+    size_t len;
+
+    str = lua_tolstring(l, lindex, &len);
+
+    strbuf_ensure_empty_length(json, len);
+
+    for (i = 0; i < len; i++) {
+        strbuf_append_char_unsafe(json, str[i]);
+    }
+}
+
 /* Find the size of the array on the top of the Lua stack
  * -1   object (not a pure array)
  * >=0  elements in array
@@ -740,32 +755,46 @@ static void json_append_data(lua_State *l, json_config_t *cfg,
             lua_pushlightuserdata(l, json_lightudata_mask(&json_array));
             lua_rawget(l, LUA_REGISTRYINDEX);
             as_array = lua_rawequal(l, -1, -2);
-            lua_pop(l, 2);
+
+            if (as_array) {
+                lua_pop(l, 2); /* pop pointer + metatable */
+                len = lua_objlen(l, -1);
+                json_append_array(l, cfg, current_depth, json, len);
+                break;
+            } else {
+                lua_pop(l, 1); /* pop pointer */
+                lua_getfield(l, -1, "__serialize");
+                if (lua_isfunction(l, -1)) {
+                    lua_pushvalue(l, -3);
+                    lua_call(l, 1, 1);
+                    if (lua_type(l, -1) == LUA_TSTRING) {
+                        json_append_serialized(l, json, -1);
+                    }
+                    lua_pop(l, 2); /* pop return + metatable */
+                    break;
+                }
+                lua_pop(l, 2); /* pop field + metatable */
+            }
         }
 
-        if (as_array) {
-            len = lua_objlen(l, -1);
+        len = lua_array_length(l, cfg, json);
+
+        if (len > 0 || (len == 0 && !cfg->encode_empty_table_as_object)) {
             json_append_array(l, cfg, current_depth, json, len);
         } else {
-            len = lua_array_length(l, cfg, json);
-
-            if (len > 0 || (len == 0 && !cfg->encode_empty_table_as_object)) {
-                json_append_array(l, cfg, current_depth, json, len);
-            } else {
-                if (has_metatable) {
-                    lua_getmetatable(l, -1);
-                    lua_pushlightuserdata(l, json_lightudata_mask(
-                                          &json_empty_array));
-                    lua_rawget(l, LUA_REGISTRYINDEX);
-                    as_array = lua_rawequal(l, -1, -2);
-                    lua_pop(l, 2); /* pop pointer + metatable */
-                    if (as_array) {
-                        json_append_array(l, cfg, current_depth, json, 0);
-                        break;
-                    }
+            if (has_metatable) {
+                lua_getmetatable(l, -1);
+                lua_pushlightuserdata(l, json_lightudata_mask(
+                                      &json_empty_array));
+                lua_rawget(l, LUA_REGISTRYINDEX);
+                as_array = lua_rawequal(l, -1, -2);
+                lua_pop(l, 2); /* pop pointer + metatable */
+                if (as_array) {
+                    json_append_array(l, cfg, current_depth, json, 0);
+                    break;
                 }
-                json_append_object(l, cfg, current_depth, json);
             }
+            json_append_object(l, cfg, current_depth, json);
         }
         break;
     case LUA_TNIL:
@@ -1537,7 +1566,7 @@ static int lua_cjson_safe_new(lua_State *l)
     return 1;
 }
 
-int luaopen_cjson(lua_State *l)
+int luaopen_sjson(lua_State *l)
 {
     lua_cjson_new(l);
 
@@ -1551,7 +1580,7 @@ int luaopen_cjson(lua_State *l)
     return 1;
 }
 
-int luaopen_cjson_safe(lua_State *l)
+int luaopen_sjson_safe(lua_State *l)
 {
     lua_cjson_safe_new(l);
 
