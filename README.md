@@ -15,6 +15,7 @@ Table of Contents
     * [empty_array_mt](#empty_array_mt)
     * [encode_number_precision](#encode_number_precision)
     * [decode_array_with_array_mt](#decode_array_with_array_mt)
+    * [decode_big_numbers_as_strings](#decode_big_numbers_as_strings)
 
 Description
 ===========
@@ -191,5 +192,15 @@ local my_json = [[{"my_array":[]}]]
 local t = cjson.decode(my_json)
 cjson.encode(t) -- {"my_array":[]} properly re-encoded as an array
 ```
+
+decode_big_numbers_as_strings
+-----------------------
+**syntax:** `cjson.decode_big_numbers_as_strings(true|false)`
+
+Aas you know, Lua 5.1 uses one single number representation which can be chosen at compile time and since it is often set to IEEE 754 double precision floating point, one cannot store a 64 bit integer with full precision.
+
+Default false. If this is set to true, then any numbers that may result in a precision loss will be preserved as a string.
+
+> Base on the commit: https://github.com/brimworks/lua-cjson/commit/48ab7055a1fa13a8f7e9a6242237a40f68f0f847
 
 [Back to TOC](#table-of-contents)
