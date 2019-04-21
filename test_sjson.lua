@@ -71,7 +71,18 @@ print(sjson.decode("100000000000000"))
 print(sjson.decode("999999999999999"))
 
 assert(decoder.decode("10000000000000") == 10000000000000)
-assert(decoder.decode("99999999999999") == 99999999999999)
-assert(decoder.decode("100000000000000") == "100000000000000")
+
+assert(decoder.decode("99999999999999")   == 99999999999999)
+assert(decoder.decode("99999999999999.0") == 99999999999999)
+assert(decoder.decode("0x5af3107a3fff") == 0x5af3107a3fff)
+-- assert(decoder.decode("02657142036437777") == 02657142036437777) -- not support oct
+
+assert(decoder.decode("100000000000000")   == "100000000000000")
+assert(decoder.decode("0x38d7ea4c68000") == "0x38d7ea4c68000")
+assert(decoder.decode("100000000000000.0") == 100000000000000.0)
+
 assert(decoder.decode("999999999999999") == "999999999999999")
-assert(decoder.decode("9007199254740992") == "9007199254740992" )
+assert(decoder.decode("999999999999999.0") == 999999999999999.0)
+
+assert(decoder.decode("9007199254740992") == "9007199254740992")
+assert(decoder.decode("9.007199254741e+15") == 9.007199254741e+15)

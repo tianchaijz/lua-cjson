@@ -1126,6 +1126,57 @@ static int json_is_invalid_number(json_parse_t *json)
     return 0;
 }
 
+static inline int digitval(int ch) {
+    unsigned d;
+
+    d = (unsigned)(ch - '0');
+    if (d < 10)
+        return (int)d;
+
+    d = (unsigned)(ch - 'a');
+    if (d < 6)
+        return (int)(d + 10);
+
+    d = (unsigned)(ch - 'A');
+    if (d < 6)
+        return (int)(d + 10);
+
+    return -1;
+}
+
+static int json_is_integer(const char *ptr, size_t n) {
+    const unsigned char *p = (const unsigned char *)ptr;
+    const unsigned char *end = p + n;
+    int d, base;
+
+    /* Single optional + or - */
+    if (p < end) {
+        char c = p[0];
+        if (c == '-' || c == '+') {
+            p++;
+        }
+    }
+
+    if (p + 2 < end && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+        p += 2;
+        base = 16;
+    } else if (p + 1 < end && p[0] == '0') {
+        p += 1;
+        base = 8;
+    } else {
+        base = 10;
+    }
+
+    if (p == end)
+        return 0;
+
+    while (p < end && (d = digitval(*p)) >= 0 && d < base) {
+        p += 1;
+    }
+
+    return p == end;
+}
+
 static void json_next_number_token(json_parse_t *json, json_token_t *token)
 {
     char *endptr;
@@ -1143,8 +1194,8 @@ static void json_next_number_token(json_parse_t *json, json_token_t *token)
     // pessimistic in that some floating point values that consume
     // 17 characters may be represented without conversion loss.
     if (json->cfg->decode_big_numbers_as_strings &&
-        (endptr - json->ptr > 16 ||
-         fabs(token->value.number) > 99999999999999.0))
+        json_is_integer(json->ptr, endptr - json->ptr) &&
+        fabs(token->value.number) > 99999999999999.0)
     {
         token->type = T_STRING;
         strbuf_reset(json->tmp);
