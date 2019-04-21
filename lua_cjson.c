@@ -1133,6 +1133,7 @@ static void json_next_number_token(json_parse_t *json, json_token_t *token)
     token->value.number = fpconv_strtod(json->ptr, &endptr);
     if (json->ptr == endptr) {
         json_set_token_error(token, json, "invalid number");
+        return;
     }
 
     // double has 53 bit significant, therefore 2^53=9007199254740992
@@ -1155,10 +1156,7 @@ static void json_next_number_token(json_parse_t *json, json_token_t *token)
     }
 
     token->type = T_NUMBER;
-    if (json->ptr == endptr)
-        json_set_token_error(token, json, "invalid number");
-    else
-        json->ptr = endptr;     /* Skip the processed number */
+    json->ptr = endptr;     /* Skip the processed number */
 
     return;
 }
