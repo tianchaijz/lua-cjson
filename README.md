@@ -201,6 +201,7 @@ Aas you know, Lua 5.1 uses one single number representation which can be chosen 
 
 Default false. If this is set to true, then any numbers that may result in a precision loss will be preserved as a string.
 
-> Base on the commit: https://github.com/brimworks/lua-cjson/commit/48ab7055a1fa13a8f7e9a6242237a40f68f0f847
+> Based on the commits: https://github.com/brimworks/lua-cjson/commit/48ab7055a1fa13a8f7e9a6242237a40f68f0f847
+> and https://github.com/yongboy/lua-cjson/commit/8f31894ce6ba0677d44b8abc2fc4a2adb6254922
 
 [Back to TOC](#table-of-contents)
